@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16
+    container_name: clpr-postgres
+    environment:
+      POSTGRES_USER: clpr
+      POSTGRES_PASSWORD: clpr
+      POSTGRES_DB: clpr
+    ports:
+      - "5432:5432"
+    volumes:
+      - clpr_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clpr -d clpr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  clpr_pg:

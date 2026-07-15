@@ -1,0 +1,18 @@
+[project]
+name = "clpr-server"
+version = "1.0.0"
+description = "FastAPI backend for the clpr learning tracker webapp"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "httpx>=0.27",
+    "psycopg[binary,pool]>=3.2",
+    "authlib>=1.3",
+    "itsdangerous>=2.2",
+    "anthropic>=0.116",
+]
+
+[tool.uv]
+package = false

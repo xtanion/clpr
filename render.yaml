@@ -1,0 +1,46 @@
+# Render Blueprint: FastAPI backend + managed Postgres for clpr.
+# Deploy: Render Dashboard -> New -> Blueprint -> pick this repo.
+# The Next.js frontend is deployed separately on Vercel (see the deploy guide).
+databases:
+  - name: clpr-db
+    databaseName: clpr
+    user: clpr
+    plan: free # free Postgres expires ~90 days; upgrade or use Neon for longer-lived
+
+services:
+  - type: web
+    name: clpr-api
+    runtime: docker
+    plan: free
+    rootDir: server
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Wired automatically from the database above (internal connection string).
+      - key: DATABASE_URL
+        fromDatabase:
+          name: clpr-db
+          property: connectionString
+      # Signs the session cookie; Render generates a strong value once.
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SESSION_HTTPS_ONLY
+        value: "true"
+      - key: POST_LOGIN_REDIRECT
+        value: "/"
+      # MUST be the public app origin = your Vercel URL (OAuth redirect_uri is built
+      # from this). Set in the dashboard after the frontend is deployed.
+      - key: OAUTH_REDIRECT_BASE
+        sync: false
+      # OAuth apps + the gists batch key — set these in the dashboard (never commit).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
