@@ -24,6 +24,8 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 
 export type ResponseIn = { index: number; value: string; frac: number; pass: boolean; msg: string };
 export type Profile = { id: string; email: string; name: string; username: string; avatarUrl: string; provider: string };
+export type GistMode = { body: string; meta: Record<string, unknown>; version: string; updatedAt: string };
+export type GistDoc = { stage: number; topic: number; version: string; modes: Record<string, GistMode> };
 
 export const auth = {
   me: () => req<Profile>("/api/auth/me"),
@@ -37,6 +39,7 @@ export const api = {
   getLeaderboard: <T>() => req<T>("/api/leaderboard"),
   getPublicGarage: <T>(username: string) => req<T>(`/api/users/${encodeURIComponent(username)}`),
   getRaces: <T>() => req<T>("/api/races/live"),
+  getGists: (stage: number, topic: number) => req<GistDoc>(`/api/concepts/${stage}/${topic}/gists`),
   saveEntry: <T>(body: { date: string; focus: number; conf: number; mins: string; summary: string; notes: string }) =>
     req<T>("/api/entries", { method: "POST", body: JSON.stringify(body) }),
   deleteEntry: <T>(date: string) => req<T>(`/api/entries/${date}`, { method: "DELETE" }),

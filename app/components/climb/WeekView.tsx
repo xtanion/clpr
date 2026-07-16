@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { type Track, weekKey } from "@/lib/track";
 import { useClpr, useHydrated, isTopicDone, toggleTopic, stageTopicsComplete, clprCleared, bestAttempt, campUnlocked } from "@/lib/store";
 import { useContent } from "@/lib/content";
 import { WeekComments } from "./WeekComments";
 import { ResLink } from "@/components/ui/ResLink";
 import { ArrowLink } from "@/components/ui/ArrowLink";
-import { Hammer, Lock } from "@/components/ui/icons";
+import { Hammer, Lock, BookOpen } from "@/components/ui/icons";
 
 function fmtRange(startIso: string, weekIndex: number) {
   if (!startIso) return "";
@@ -64,7 +65,10 @@ export function WeekView({ track, weekIndex }: { track: Track; weekIndex: number
                 <span className="qb">]</span>
               </button>
               <div className="topic-main">
-                <div className="topic-label">{t.label}</div>
+                <Link className="topic-label topic-gist" href={`/gist/${t.stage}/${t.topic}`} title="Read the gist">
+                  {t.label}
+                  {t.gists?.modes?.length ? <BookOpen size={13} className="topic-gist-ico" /> : null}
+                </Link>
                 {t.build ? (
                   <div className="res-row"><span className="res build"><Hammer size={13} className="res-ico" />build it</span></div>
                 ) : t.res.length > 0 ? (

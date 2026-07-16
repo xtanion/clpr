@@ -3,7 +3,8 @@
 
 export type ResType = "read" | "code" | "video" | "paper";
 export type Resource = { label: string; url: string; type: ResType };
-export type Topic = { label: string; res: Resource[]; build?: boolean };
+export type GistAvail = { modes: string[]; version: string };
+export type Topic = { label: string; res: Resource[]; build?: boolean; gists?: GistAvail };
 export type Stage = { alt: string; title: string; blurb: string; topics: Topic[] };
 
 export type Weight = "full" | "reduced";

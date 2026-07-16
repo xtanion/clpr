@@ -447,6 +447,23 @@ section { padding: 40px 0; }
 .md th, .md td { border-bottom: 1px solid var(--line); padding: 6px 12px 6px 0; text-align: left; }
 .md th { color: var(--muted); font-weight: 600; }
 .md img { max-width: 100%; }
+
+/* ---------- gist reader ---------- */
+.topic-gist { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; font: inherit; font-size: 13px; line-height: 1.4; color: var(--text); cursor: pointer; text-align: left; }
+.topic-gist:hover { color: var(--light-green); }
+.topic-gist-ico { color: var(--muted); flex: 0 0 auto; }
+.topic-gist:hover .topic-gist-ico { color: var(--light-green); }
+
+.gist-page { max-width: 680px; margin: 0 auto; }
+.gist-back { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; text-decoration: none; }
+.gist-back:hover { color: var(--text); }
+.gist-page-title { font-size: 22px; font-weight: 600; color: var(--loud); line-height: 1.3; margin: 6px 0 0; }
+.gist-meta { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+.gist-page-body { margin-top: 24px; }
+.mermaid { margin: 16px 0; display: flex; justify-content: center; }
+.mermaid svg { max-width: 100%; height: auto; }
+.mermaid-loading { color: var(--muted); font-size: 12px; margin: 16px 0; }
+.mermaid-fallback { background: #121212; border: 1px solid var(--line); padding: 12px 14px; overflow-x: auto; margin: 12px 0; font-size: 12px; color: var(--muted); }
 .md input[type=checkbox] { margin-right: 6px; }
 
 /* ---------- Quiz ---------- */

@@ -29,6 +29,10 @@ services:
         value: "true"
       - key: POST_LOGIN_REDIRECT
         value: "/"
+      # Bearer token that authorizes pushing gists via POST /api/admin/gists.
+      # Render generates one; read it from the dashboard to use as the CLI --token.
+      - key: GIST_ADMIN_TOKEN
+        generateValue: true
       # MUST be the public app origin = your Vercel URL (OAuth redirect_uri is built
       # from this). Set in the dashboard after the frontend is deployed.
       - key: OAUTH_REDIRECT_BASE

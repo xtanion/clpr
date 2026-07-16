@@ -1,10 +1,10 @@
 import { getContent } from "./content";
-import type { Stage, Resource } from "./data";
+import type { Stage, Resource, GistAvail } from "./data";
 
 // Clean data contract for a learning track, built from the backend-served content
 // (roadmap + quizzes) rather than any hardcoded data.
 
-export type WeekTopic = { stage: number; topic: number; label: string; res: Resource[]; build?: boolean };
+export type WeekTopic = { stage: number; topic: number; label: string; res: Resource[]; build?: boolean; gists?: GistAvail };
 export type Week = {
   index: number;
   weekNo: number;
@@ -34,6 +34,7 @@ export function getTrack(topicId: string): Track {
       label: camp.topics[t].label,
       res: camp.topics[t].res,
       build: camp.topics[t].build,
+      gists: camp.topics[t].gists,
     }));
     weeks.push({
       index: w,

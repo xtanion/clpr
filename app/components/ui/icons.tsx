@@ -19,6 +19,7 @@ export const Hammer = (p: P) => <Stroke {...p}><path d="M15 12l-8.5 8.5a2.12 2.1
 export const Lock = (p: P) => <Stroke {...p}><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></Stroke>;
 export const Clock = (p: P) => <Stroke {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></Stroke>;
 export const Smartphone = (p: P) => <Stroke {...p}><rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><path d="M12 18h.01" /></Stroke>;
+export const BookOpen = (p: P) => <Stroke {...p}><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></Stroke>;
 
 function Brand({ size = 15, className, d, evenOdd }: P & { d: string; evenOdd?: boolean }) {
   return (

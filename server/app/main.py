@@ -21,6 +21,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from . import auth, content as data, db, grading, schemas, seed
 from .auth import current_user
 from .gists import store as gist_store
+from .gists import api as gists_api
 
 
 @asynccontextmanager
@@ -58,6 +59,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(gists_api.router)
 
 
 # --------------------------- content (read-only) ---------------------------

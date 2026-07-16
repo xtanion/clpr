@@ -102,8 +102,9 @@ def get_gists(stage: int, topic: int) -> Optional[dict[str, Any]]:
                 (topic_id,),
             )
         }
-    # Present in the canonical mode order the reader expects.
+    # Canonical modes first, then any custom mode ids the author used.
     ordered = {m: modes[m] for m in MODE_IDS if m in modes}
+    ordered.update({m: v for m, v in modes.items() if m not in ordered})
     version = next((v["version"] for v in ordered.values()), "")
     return {"stage": stage, "topic": topic, "version": version, "modes": ordered}
 
@@ -121,8 +122,9 @@ def availability(conn) -> dict[int, dict[int, dict[str, Any]]]:
         slot = out.setdefault(stage, {}).setdefault(topic, {"modes": [], "version": version})
         slot["modes"].append(mode)
         slot["version"] = version
-    # Keep modes in canonical order.
+    # Canonical modes first, then any custom mode ids the author used.
     for stage in out.values():
         for slot in stage.values():
-            slot["modes"] = [m for m in MODE_IDS if m in slot["modes"]]
+            present = slot["modes"]
+            slot["modes"] = [m for m in MODE_IDS if m in present] + [m for m in present if m not in MODE_IDS]
     return out
