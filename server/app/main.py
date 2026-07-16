@@ -18,7 +18,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import auth, content as data, db, grading, schemas, seed
+from . import auth, cache, content as data, db, grading, schemas, security, seed
 from .auth import current_user
 from .gists import store as gist_store
 from .gists import api as gists_api
@@ -33,7 +33,13 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="clpr backend", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="clpr backend",
+    version="1.0.0",
+    lifespan=lifespan,
+    # Guards run on every path operation: shared-secret gate, then rate limit.
+    dependencies=[Depends(security.require_api_key), Depends(security.rate_limit)],
+)
 
 # The browser normally only hits the Next origin (same-origin /api rewrites), so CORS
 # rarely applies — but allow the deployed frontend origin too, for direct calls.
@@ -187,12 +193,20 @@ def get_stats(user: str = Depends(current_user)) -> dict[str, Any]:
 
 @app.get("/api/leaderboard")
 def get_leaderboard(user: str = Depends(current_user)) -> list[dict[str, Any]]:
-    return grading.global_leaderboard(db.leaderboard_data(), user)
+    board = cache.get_json("lb:board")
+    if board is None:
+        board = grading.rank_board(db.leaderboard_data())
+        cache.set_json("lb:board", board, ttl=30)
+    return grading.mark_me(board, user)
 
 
 @app.get("/api/races/live")
 def get_races_live(user: str = Depends(current_user)) -> dict[str, Any]:
-    return grading.races(db.races_data(), user)
+    races = cache.get_json("lb:races")
+    if races is None:
+        races = grading.rank_races(db.races_data())
+        cache.set_json("lb:races", races, ttl=30)
+    return grading.mark_me_races(races, user)
 
 
 @app.post("/api/state/reset")

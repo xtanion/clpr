@@ -8,6 +8,13 @@ databases:
     plan: free # free Postgres expires ~90 days; upgrade or use Neon for longer-lived
 
 services:
+  # Redis-compatible Key Value store: leaderboard cache + rate-limit counters.
+  # Free plan is ~25MB, no persistence (fine for cache/ephemeral, not durable data).
+  - type: keyvalue
+    name: clpr-kv
+    plan: free
+    ipAllowList: [] # private network only
+
   - type: web
     name: clpr-api
     runtime: docker
@@ -22,6 +29,18 @@ services:
         fromDatabase:
           name: clpr-db
           property: connectionString
+      # Redis (Key Value) connection string, wired from the store above.
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: clpr-kv
+          property: connectionString
+      # Shared secret the frontend proxy sends as X-API-Key. Render generates it;
+      # set the SAME value on the frontend (BACKEND_API_KEY) so its proxy can inject it.
+      - key: BACKEND_API_KEY
+        generateValue: true
+      - key: RATE_LIMIT_PER_MIN
+        value: "120"
       # Signs the session cookie; Render generates a strong value once.
       - key: SESSION_SECRET
         generateValue: true

@@ -163,20 +163,20 @@ def leaderboard(state: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
-def global_leaderboard(rows: list[dict[str, Any]], current_user: str) -> list[dict[str, Any]]:
-    """Rank all real users by XP. `rows` come from db.leaderboard_data(); the row whose
-    id matches current_user is flagged `me`. Stage = highest clpr cleared + 1."""
+def rank_board(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Rank all real users by XP into a user-independent board (so it can be cached).
+    Each row keeps a private `_id` for the caller to flag `me` after a cache read."""
     board = []
     for r in rows:
         passed = r["passedStages"]
         board.append({
+            "_id": r["id"],
             "name": r["username"] or r["name"] or "climber",
             "handle": r["username"] or r["id"],
             "xp": round(r["xp"]),
             "stage": (max(passed) + 1) if passed else 0,
             "streak": streak(r["entries"]),
             "avatarUrl": r.get("avatarUrl") or "",
-            "me": r["id"] == current_user,
             "rank": 0,
         })
     board.sort(key=lambda b: b["xp"], reverse=True)
@@ -185,21 +185,47 @@ def global_leaderboard(rows: list[dict[str, Any]], current_user: str) -> list[di
     return board
 
 
-def races(rows: list[dict[str, Any]], current_user: str) -> dict[str, list[dict[str, Any]]]:
+def mark_me(board: list[dict[str, Any]], current_user: str) -> list[dict[str, Any]]:
+    """Flag the caller's row and drop the private `_id` for the response."""
+    out = []
+    for r in board:
+        row = {k: v for k, v in r.items() if k != "_id"}
+        row["me"] = r.get("_id") == current_user
+        out.append(row)
+    return out
+
+
+def global_leaderboard(rows: list[dict[str, Any]], current_user: str) -> list[dict[str, Any]]:
+    return mark_me(rank_board(rows), current_user)
+
+
+def rank_races(rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """Group per-stage best attempts (from db.races_data()) into race boards keyed by
-    stage, each ranked by score desc then time asc, with the caller's row flagged."""
+    stage, each ranked by score desc then time asc. User-independent, so cacheable;
+    rows keep a private `_id` for flagging `me` after a cache read."""
     by_stage: dict[str, list[dict[str, Any]]] = {}
     for r in rows:
         by_stage.setdefault(str(r["stage"]), []).append({
+            "_id": r["id"],
             "name": r["username"] or r["name"] or "climber",
             "handle": r["username"] or r["id"],
             "ms": r["ms"],
             "score": r["score"],
-            "me": r["id"] == current_user,
         })
     for runners in by_stage.values():
         runners.sort(key=lambda x: (-x["score"], x["ms"]))
     return by_stage
+
+
+def mark_me_races(by_stage: dict[str, list[dict[str, Any]]], current_user: str) -> dict[str, list[dict[str, Any]]]:
+    return {
+        stage: [{**{k: v for k, v in r.items() if k != "_id"}, "me": r.get("_id") == current_user} for r in runners]
+        for stage, runners in by_stage.items()
+    }
+
+
+def races(rows: list[dict[str, Any]], current_user: str) -> dict[str, list[dict[str, Any]]]:
+    return mark_me_races(rank_races(rows), current_user)
 
 
 def my_rank(state: dict[str, Any]) -> int:
