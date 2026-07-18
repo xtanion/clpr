@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {Box, Text, useInput} from 'ink';
 import type {ScreenProps} from '../app.js';
 import type {Content, State, TreeNode} from '../types.js';
@@ -65,39 +65,61 @@ function buildTree(content: Content, st: State): Node {
 
 type Row = {node: Node; prefix: string};
 
-function flatten(node: Node, prefix: string, isRoot: boolean, isLast: boolean, expanded: Record<string, boolean>, rows: Row[]) {
+function flatten(node: Node, prefix: string, isRoot: boolean, isLast: boolean, isExpanded: (id: string) => boolean, rows: Row[]) {
 	const connector = isRoot ? '' : isLast ? '└─ ' : '├─ ';
 	rows.push({node, prefix: prefix + connector});
-	const isExp = expanded[node.id] !== false;
-	if (node.expandable && isExp && node.children?.length) {
+	if (node.expandable && isExpanded(node.id) && node.children?.length) {
 		const childPrefix = isRoot ? '' : prefix + (isLast ? '   ' : '│  ');
-		node.children.forEach((c, i) => flatten(c, childPrefix, false, i === node.children!.length - 1, expanded, rows));
+		node.children.forEach((c, i) => flatten(c, childPrefix, false, i === node.children!.length - 1, isExpanded, rows));
 	}
 }
 
 const selectable = (n: Node) => (n.kind === 'branch' && n.expandable) || (n.kind === 'camp' && !n.locked);
 
-export function Home({content, st, nav}: ScreenProps) {
+// Ancestor branch ids leading to the camp the user is reading, so we open only that path.
+function pathToCamp(node: Node, focus: number, acc: string[]): string[] | null {
+	if (node.kind === 'camp') return node.camp === focus ? acc : null;
+	for (const c of node.children ?? []) {
+		const r = pathToCamp(c, focus, [...acc, node.id]);
+		if (r) return r;
+	}
+	return null;
+}
+
+export function Home({content, st, nav, readingCamp}: ScreenProps) {
 	const theme = useTheme();
 	const root = useMemo(() => buildTree(content, st), [content, st]);
 	const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 
+	// The chapter you're on: last camp opened, else the next objective's stage.
+	const objStage = sel.nextObjective(content, st).stage;
+	const focusCamp = readingCamp >= 0 ? readingCamp : objStage >= 0 ? objStage : 0;
+	const pathSet = useMemo(() => new Set(pathToCamp(root, focusCamp, []) ?? []), [root, focusCamp]);
+
+	// Re-focus the tree on the current chapter whenever it changes: reset manual
+	// expand/collapse and select the current camp.
+	useEffect(() => {
+		setExpanded({});
+		setSelectedId(`c${focusCamp}`);
+	}, [focusCamp]);
+
+	const isExpanded = (id: string) => expanded[id] ?? pathSet.has(id);
+
 	const rows: Row[] = [];
-	flatten(root, '', true, true, expanded, rows);
+	flatten(root, '', true, true, isExpanded, rows);
 	const selIds = rows.filter(r => selectable(r.node)).map(r => r.node.id);
-	const firstCamp = rows.find(r => r.node.kind === 'camp' && !r.node.locked)?.node.id;
-	const active = selectedId && selIds.includes(selectedId) ? selectedId : firstCamp ?? selIds[0] ?? null;
+	const active = selectedId && selIds.includes(selectedId) ? selectedId : `c${focusCamp}`;
 
 	useInput((input, key) => {
-		if (selIds.length === 0 || !active) return;
+		if (selIds.length === 0) return;
 		const cur = selIds.indexOf(active);
 		if (key.upArrow) setSelectedId(selIds[(cur - 1 + selIds.length) % selIds.length]!);
 		else if (key.downArrow) setSelectedId(selIds[(cur + 1) % selIds.length]!);
 		else if (key.return || input === ' ') {
 			const node = rows.find(r => r.node.id === active)?.node;
 			if (!node) return;
-			if (node.kind === 'branch') setExpanded(e => ({...e, [node.id]: e[node.id] === false}));
+			if (node.kind === 'branch') setExpanded(e => ({...e, [node.id]: !isExpanded(node.id)}));
 			else if (node.kind === 'camp' && node.camp !== undefined) nav.openClimb(node.camp);
 		}
 	});
@@ -107,7 +129,7 @@ export function Home({content, st, nav}: ScreenProps) {
 			<Text color={theme.muted}>// flavours</Text>
 			{rows.map(({node, prefix}) => {
 				const isSel = node.id === active;
-				const isExp = expanded[node.id] !== false;
+				const isExp = isExpanded(node.id);
 				const caret = node.expandable ? (isExp ? ICON.caretOpen : ICON.caretClosed) + ' ' : '';
 				return (
 					<Text key={node.id}>

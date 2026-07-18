@@ -18,6 +18,7 @@ export type Config = {
 	apiKey: string;
 	token: string;
 	theme: string;
+	reading: number; // camp index the user last opened (-1 = none)
 };
 
 export const DEFAULT_BASE_URL = 'http://127.0.0.1:8000';
@@ -44,6 +45,7 @@ export function load(): Config {
 		apiKey: process.env['CLPR_API_KEY'] || data.apiKey || '',
 		token: data.token || '',
 		theme: process.env['CLPR_THEME'] || data.theme || '',
+		reading: typeof data.reading === 'number' ? data.reading : -1,
 	};
 }
 
@@ -63,6 +65,10 @@ export function saveToken(token: string): void {
 
 export function saveTheme(theme: string): void {
 	write({...readFile(), theme});
+}
+
+export function saveReading(reading: number): void {
+	write({...readFile(), reading});
 }
 
 export function clearToken(): void {

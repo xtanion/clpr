@@ -67,6 +67,7 @@ export function App({cfg, api: apiProp}: {cfg: Config; api?: Api}) {
 	const [gistLoc, setGistLoc] = useState<[number, number]>([0, 0]);
 	const [themeName, setThemeName] = useState(() => resolveTheme(cfg.theme).name);
 	const [minsToday, setMinsToday] = useState(0);
+	const [readingCamp, setReadingCamp] = useState(cfg.reading);
 	const loggedIn = !!cfg.token;
 	const {columns, rows} = useDimensions();
 	const theme = resolveTheme(themeName);
@@ -133,6 +134,8 @@ export function App({cfg, api: apiProp}: {cfg: Config; api?: Api}) {
 		back,
 		openClimb: c => {
 			setCamp(c);
+			setReadingCamp(c);
+			config.saveReading(c);
 			navigate('climb');
 		},
 		openQuiz: s => {
@@ -227,7 +230,7 @@ export function App({cfg, api: apiProp}: {cfg: Config; api?: Api}) {
 	const who = profile?.username || (loggedIn ? 'you' : 'anon');
 	const strk = sel.streak(st);
 
-	const shared = {content, st, api, nav, setCapture, refreshState, loggedIn, checkIn, minsToday};
+	const shared = {content, st, api, nav, setCapture, refreshState, loggedIn, checkIn, minsToday, readingCamp};
 
 	return (
 		<ThemeContext.Provider value={theme}>
@@ -300,4 +303,5 @@ export type ScreenProps = {
 	loggedIn: boolean;
 	checkIn: (summary?: string) => void;
 	minsToday: number;
+	readingCamp: number;
 };

@@ -64,7 +64,7 @@ const fakeApi = {
 	attempt: async () => ({attempt: {xp: 210}, score: 1, passed: true, grades: []}),
 } as unknown as Api;
 
-const cfg: Config = {baseUrl: 'http://fake', apiKey: 'k', token: 'tok', theme: 'catppuccin'};
+const cfg: Config = {baseUrl: 'http://fake', apiKey: 'k', token: 'tok', theme: 'catppuccin', reading: -1};
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
