@@ -10,25 +10,26 @@ palette**, and paints **no background** (your terminal's background shows throug
 ```sh
 cd tui
 npm install
-npm run build
+npm link      # builds (via prepare) and installs `clpr` on your PATH
 ```
+
+`npm link` is all you need — it runs the build and puts a single `clpr` command on your
+PATH. Everything below is driven by that one command.
 
 Point it at your backend and set the shared API key (matches `BACKEND_API_KEY` on the
 server; leave empty if the gate is disabled):
 
 ```sh
-node dist/cli.js configure --base-url http://127.0.0.1:8000 --api-key <BACKEND_API_KEY>
+clpr configure --base-url http://127.0.0.1:8000 --api-key <BACKEND_API_KEY>
 # or export CLPR_BASE_URL / CLPR_API_KEY
 ```
-
-Install it as the `clpr` command with `npm link` (optional), then `clpr` works directly.
 
 ## Sign in (device flow)
 
 ```sh
-node dist/cli.js login     # prints a code, opens the browser approval page (/device)
-node dist/cli.js whoami
-node dist/cli.js logout
+clpr login     # prints a code, opens the browser approval page (/device)
+clpr whoami
+clpr logout
 ```
 
 `login` starts a device-authorization request, opens `<app>/device?code=XXXX-XXXX` in
@@ -39,7 +40,7 @@ to serve the approval page.
 ## Run
 
 ```sh
-npm start          # = node dist/cli.js
+clpr               # launch the TUI
 # or, during development (needs esbuild scripts approved):
 npm run dev
 ```

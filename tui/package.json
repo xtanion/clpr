@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "prepare": "tsc",
     "dev": "tsx source/cli.tsx",
     "start": "node dist/cli.js",
     "test": "tsx source/smoke.tsx"
