@@ -220,31 +220,38 @@ def public_garage(username: str) -> Optional[dict[str, Any]]:
 
 
 def leaderboard_data() -> list[dict[str, Any]]:
-    """Per real (OAuth) user, the raw inputs the leaderboard ranks on: profile plus
-    total XP, the stages they've cleared, and their check-in dates. Aggregated in a
-    few grouped queries rather than loading each user's full state."""
+    """Per real (OAuth) user, the raw inputs the leaderboard ranks on: profile plus the
+    components XP is derived from — topics completed, stages cleared, and days with a
+    written note — and check-in dates for streaks. Aggregated in grouped queries rather
+    than loading each user's full state."""
     with pool().connection() as conn:
         users = conn.execute(
             "SELECT id, name, username, avatar_url FROM users WHERE provider IN ('google', 'github')"
         ).fetchall()
-        xp_rows = conn.execute("SELECT user_id, COALESCE(SUM(xp), 0) FROM ledger GROUP BY user_id").fetchall()
+        prog_rows = conn.execute("SELECT user_id, stage, topic FROM progress").fetchall()
         att_rows = conn.execute("SELECT user_id, stage FROM attempts WHERE passed = TRUE").fetchall()
-        ent_rows = conn.execute("SELECT user_id, date FROM entries").fetchall()
+        ent_rows = conn.execute("SELECT user_id, date, summary FROM entries").fetchall()
 
-    xp = {uid: int(total) for uid, total in xp_rows}
+    progress: dict[str, dict[str, bool]] = {}
+    for uid, stage, topic in prog_rows:
+        progress.setdefault(uid, {})[f"s{stage}t{topic}"] = True
     passed: dict[str, list[int]] = {}
     for uid, stage in att_rows:
         passed.setdefault(uid, []).append(stage)
     entries: dict[str, dict[str, bool]] = {}
-    for uid, dt in ent_rows:
+    noted: dict[str, int] = {}
+    for uid, dt, summary in ent_rows:
         entries.setdefault(uid, {})[dt] = True
+        if (summary or "").strip():
+            noted[uid] = noted.get(uid, 0) + 1
 
     return [
         {
             "id": uid, "name": name, "username": username, "avatarUrl": avatar,
-            "xp": xp.get(uid, 0),
+            "progress": progress.get(uid, {}),
             "passedStages": passed.get(uid, []),
             "entries": entries.get(uid, {}),
+            "notedDays": noted.get(uid, 0),
         }
         for uid, name, username, avatar in users
     ]

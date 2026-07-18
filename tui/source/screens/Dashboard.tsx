@@ -77,7 +77,7 @@ export function Dashboard({
 			<Text color={theme.muted}>// dashboard</Text>
 			<Text bold>Welcome back, {who}.</Text>
 			<Text color={theme.muted}>
-				<Text color={theme.accent}>{sel.engineerTitle(content, st)}</Text> · {sel.totalXp(st)} xp · stage{' '}
+				<Text color={theme.accent}>{sel.engineerTitle(content, st)}</Text> · {sel.totalXp(content, st)} xp · stage{' '}
 				{sel.highestStageCleared(content, st)} · <Text color={theme.info}>{minsToday} min today</Text>
 			</Text>
 			<Text>

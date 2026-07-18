@@ -313,7 +313,9 @@ def submit_attempt(stage: int, body: schemas.AttemptIn, user: str = Depends(curr
 
     def fn(doc: dict[str, Any]) -> None:
         first_clear = passed and not grading.clpr_cleared(doc["attempts"], stage)
-        xp = grading.compute_xp(doc["entries"], stage, score, first_clear) if passed else 0
+        # XP is derived from state (see grading.total_xp); attempt.xp is just what this
+        # attempt earned, for the result screen — a flat quiz award on first clear.
+        xp = grading.XP_QUIZ if first_clear else 0
         at = _now_iso()
         attempt = {
             "id": int(time.time() * 1000), "stage": stage, "score": score,
@@ -321,8 +323,6 @@ def submit_attempt(stage: int, body: schemas.AttemptIn, user: str = Depends(curr
             "firstClear": first_clear, "at": at,
         }
         doc["attempts"].append(attempt)
-        if xp > 0:
-            doc["ledger"].append({"source": attempt["id"], "xp": xp, "at": at})
         result["attempt"] = attempt
 
     state = db.mutate(user, fn)

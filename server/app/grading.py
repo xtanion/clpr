@@ -123,19 +123,44 @@ def highest_stage_cleared(attempts: list[dict[str, Any]]) -> int:
     return h
 
 
-def total_xp(ledger: list[dict[str, Any]]) -> int:
-    return round(sum(r["xp"] for r in ledger))
+# ---------- XP: derived from what you've actually done (no locking to earn it) ----------
+# Reading is free; XP is only earned by completing things. XP is a pure function of
+# state, so it can never double-count and needs no ledger bookkeeping.
+XP_TOPIC = 2   # mark a chapter/topic complete
+XP_CAMP = 5    # bonus for finishing an entire camp ("cliff")
+XP_QUIZ = 5    # clear a camp's clpr (quiz)
+XP_NOTE = 1    # write a daily note (check-in summary)
+XP_UPVOTE = 0.5  # per upvote on your comment — wired up when upvotes land
 
 
-def compute_xp(entries: dict[str, Any], stage: int, score_fraction: float, first_clear: bool) -> int:
-    base = 100
-    difficulty = 1 + stage * 0.15
-    score_part = 0.5 + 0.5 * score_fraction
-    streak_mult = 1 + min(streak(entries), 30) * 0.02
-    xp = base * difficulty * score_part * streak_mult
-    if first_clear:
-        xp += 150
-    return round(xp)
+def camps_completed(progress: dict[str, bool]) -> int:
+    n = 0
+    for st in range(len(data.roadmap)):
+        topics = data.roadmap[st]["topics"]
+        if topics and stage_done_count(progress, st) == len(topics):
+            n += 1
+    return n
+
+
+def quizzes_passed(attempts: list[dict[str, Any]]) -> int:
+    return len({a["stage"] for a in attempts if a.get("passed")})
+
+
+def days_noted(entries: dict[str, Any]) -> int:
+    return sum(1 for e in entries.values() if (e.get("summary") or "").strip())
+
+
+def xp_components(topics_done: int, camps_done: int, quizzes: int, notes: int, upvotes: int = 0) -> int:
+    return round(XP_TOPIC * topics_done + XP_CAMP * camps_done + XP_QUIZ * quizzes + XP_NOTE * notes + XP_UPVOTE * upvotes)
+
+
+def total_xp(state: dict[str, Any]) -> int:
+    return xp_components(
+        completed_topics(state["progress"]),
+        camps_completed(state["progress"]),
+        quizzes_passed(state["attempts"]),
+        days_noted(state["entries"]),
+    )
 
 
 def best_attempt(attempts: list[dict[str, Any]], stage: int) -> Optional[dict[str, Any]]:
@@ -150,7 +175,7 @@ def best_attempt(attempts: list[dict[str, Any]], stage: int) -> Optional[dict[st
 def leaderboard(state: dict[str, Any]) -> list[dict[str, Any]]:
     me = {
         "name": "You", "handle": "you",
-        "xp": total_xp(state["ledger"]),
+        "xp": total_xp(state),
         "stage": highest_stage_cleared(state["attempts"]),
         "streak": streak(state["entries"]),
         "me": True, "rank": 0,
@@ -169,11 +194,18 @@ def rank_board(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     board = []
     for r in rows:
         passed = r["passedStages"]
+        progress = r["progress"]
+        xp = xp_components(
+            completed_topics(progress),
+            camps_completed(progress),
+            len(set(passed)),
+            r["notedDays"],
+        )
         board.append({
             "_id": r["id"],
             "name": r["username"] or r["name"] or "climber",
             "handle": r["username"] or r["id"],
-            "xp": round(r["xp"]),
+            "xp": xp,
             "stage": (max(passed) + 1) if passed else 0,
             "streak": streak(r["entries"]),
             "avatarUrl": r.get("avatarUrl") or "",
@@ -242,7 +274,7 @@ def stats(state: dict[str, Any]) -> dict[str, Any]:
         "completedTopics": completed_topics(progress),
         "totalTopics": data.TOTAL_TOPICS,
         "altitude": altitude(progress),
-        "totalXp": total_xp(state["ledger"]),
+        "totalXp": total_xp(state),
         "highestStageCleared": highest_stage_cleared(state["attempts"]),
         "rank": my_rank(state),
         "stageDone": [stage_done_count(progress, st) for st in range(len(data.roadmap))],

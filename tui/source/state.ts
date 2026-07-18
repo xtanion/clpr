@@ -55,12 +55,36 @@ export function highestStageCleared(c: Content, s: State): number {
 	return h;
 }
 
-export const totalXp = (s: State) =>
-	Math.round(s.ledger.reduce((x, r) => x + r.xp, 0));
+// XP is derived from what you've completed — reading is free, XP is earned.
+const XP = {topic: 2, camp: 5, quiz: 5, note: 1};
 
-export function campUnlocked(c: Content, s: State, campId: number): boolean {
-	if (campId <= 0) return true;
-	return stageTopicsComplete(c, s, campId - 1);
+export function campsCompleted(c: Content, s: State): number {
+	let n = 0;
+	for (let st = 0; st < c.roadmap.length; st++)
+		if (c.roadmap[st]!.topics.length && stageTopicsComplete(c, s, st)) n++;
+	return n;
+}
+
+export function quizzesPassed(s: State): number {
+	return new Set(s.attempts.filter(a => a.passed).map(a => a.stage)).size;
+}
+
+export function daysNoted(s: State): number {
+	return Object.values(s.entries).filter(e => (e.summary || '').trim()).length;
+}
+
+export function totalXp(c: Content, s: State): number {
+	return Math.round(
+		XP.topic * completedTopics(c, s) +
+			XP.camp * campsCompleted(c, s) +
+			XP.quiz * quizzesPassed(s) +
+			XP.note * daysNoted(s),
+	);
+}
+
+// Everything is unlocked — people can read whatever they want.
+export function campUnlocked(_c: Content, _s: State, _campId: number): boolean {
+	return true;
 }
 
 export function engineerTitle(c: Content, s: State): string {
