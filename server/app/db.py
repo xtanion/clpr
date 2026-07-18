@@ -9,8 +9,10 @@ handlers and grading stay unchanged.
 from __future__ import annotations
 
 import copy
+import hashlib
 import os
 import re
+import secrets
 from typing import Any, Callable, Optional
 
 from psycopg_pool import ConnectionPool
@@ -263,6 +265,123 @@ def races_data() -> list[dict[str, Any]]:
         {"id": uid, "stage": stage, "ms": ms, "score": score, "name": name, "username": username}
         for uid, stage, ms, score, name, username in rows
     ]
+
+
+# --------------------------- headless auth (device flow + tokens) ---------------------------
+
+def _token_hash(raw: str) -> str:
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def create_device_code(user_code: str, created_at: str, expires_at: str) -> str:
+    """Open a pending device-authorization request and return its device_code."""
+    device_code = secrets.token_urlsafe(32)
+    with pool().connection() as conn:
+        conn.execute(
+            "INSERT INTO device_codes (device_code, user_code, status, created_at, expires_at) "
+            "VALUES (%s, %s, 'pending', %s, %s)",
+            (device_code, user_code, created_at, expires_at),
+        )
+    return device_code
+
+
+def get_device_code(device_code: str) -> Optional[dict[str, Any]]:
+    with pool().connection() as conn:
+        row = conn.execute(
+            "SELECT device_code, user_code, uid, status, created_at, expires_at "
+            "FROM device_codes WHERE device_code = %s",
+            (device_code,),
+        ).fetchone()
+    if not row:
+        return None
+    return {"device_code": row[0], "user_code": row[1], "uid": row[2],
+            "status": row[3], "created_at": row[4], "expires_at": row[5]}
+
+
+def get_device_code_by_user_code(user_code: str) -> Optional[dict[str, Any]]:
+    with pool().connection() as conn:
+        row = conn.execute(
+            "SELECT device_code, user_code, uid, status, created_at, expires_at "
+            "FROM device_codes WHERE user_code = %s ORDER BY created_at DESC LIMIT 1",
+            (user_code,),
+        ).fetchone()
+    if not row:
+        return None
+    return {"device_code": row[0], "user_code": row[1], "uid": row[2],
+            "status": row[3], "created_at": row[4], "expires_at": row[5]}
+
+
+def approve_device_code(user_code: str, uid: str) -> bool:
+    """Bind a signed-in user to a pending code (browser approval step). Returns
+    False if no pending code matches (unknown/already handled)."""
+    with pool().connection() as conn:
+        with conn.transaction():
+            cur = conn.execute(
+                "UPDATE device_codes SET status = 'approved', uid = %s "
+                "WHERE user_code = %s AND status = 'pending'",
+                (uid, user_code),
+            )
+            return cur.rowcount > 0
+
+
+def mint_token(uid: str, label: str, now: str) -> str:
+    """Create a personal bearer token for uid, store only its hash, return the
+    raw token once (never recoverable afterwards)."""
+    raw = secrets.token_urlsafe(32)
+    with pool().connection() as conn:
+        conn.execute(
+            "INSERT INTO personal_tokens (token_hash, uid, label, created_at) "
+            "VALUES (%s, %s, %s, %s)",
+            (_token_hash(raw), uid, label, now),
+        )
+    return raw
+
+
+def consume_device_code(device_code: str, now: str) -> Optional[str]:
+    """Exchange an approved code for a fresh token, marking it consumed so it can
+    only be redeemed once. Returns the raw token, or None if not approvable."""
+    with pool().connection() as conn:
+        with conn.transaction():
+            row = conn.execute(
+                "SELECT uid FROM device_codes WHERE device_code = %s AND status = 'approved' FOR UPDATE",
+                (device_code,),
+            ).fetchone()
+            if not row or not row[0]:
+                return None
+            uid = row[0]
+            raw = secrets.token_urlsafe(32)
+            conn.execute(
+                "INSERT INTO personal_tokens (token_hash, uid, label, created_at) "
+                "VALUES (%s, %s, %s, %s)",
+                (_token_hash(raw), uid, "clpr cli", now),
+            )
+            conn.execute(
+                "UPDATE device_codes SET status = 'consumed' WHERE device_code = %s",
+                (device_code,),
+            )
+    return raw
+
+
+def uid_for_token(raw: str, now: str) -> Optional[str]:
+    """Resolve a bearer token to its user id, touching last_used_at. None if unknown."""
+    if not raw:
+        return None
+    with pool().connection() as conn:
+        row = conn.execute(
+            "SELECT uid FROM personal_tokens WHERE token_hash = %s", (_token_hash(raw),)
+        ).fetchone()
+        if not row:
+            return None
+        conn.execute(
+            "UPDATE personal_tokens SET last_used_at = %s WHERE token_hash = %s",
+            (now, _token_hash(raw)),
+        )
+    return row[0]
+
+
+def revoke_token(raw: str) -> None:
+    with pool().connection() as conn:
+        conn.execute("DELETE FROM personal_tokens WHERE token_hash = %s", (_token_hash(raw),))
 
 
 def load(user: str) -> dict[str, Any]:

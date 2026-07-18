@@ -70,9 +70,16 @@ def _now_iso() -> str:
 
 
 def current_user(request: Request) -> str:
-    """FastAPI dependency: the signed-in user's id, or 401. Replaces the old
-    ``?user=`` query param — identity now comes only from the session cookie.
-    With DEV_AUTH enabled, unauthenticated requests fall back to the dev user."""
+    """FastAPI dependency: the signed-in user's id, or 401. Identity comes from a
+    personal bearer token (headless clients like the clpr TUI) if present, else the
+    session cookie (browser). With DEV_AUTH enabled, unauthenticated requests fall
+    back to the dev user."""
+    authz = request.headers.get("authorization", "")
+    if authz.lower().startswith("bearer "):
+        uid = db.uid_for_token(authz[7:].strip(), _now_iso())
+        if uid:
+            return uid
+        raise HTTPException(status_code=401, detail="invalid or revoked token")
     uid = request.session.get("user")
     if not uid and DEV_AUTH_ENABLED:
         return DEV_USER
@@ -134,6 +141,13 @@ async def _github_primary_email(client, token) -> str:
 
 @router.get("/api/auth/me")
 async def me(request: Request):
+    authz = request.headers.get("authorization", "")
+    if authz.lower().startswith("bearer "):
+        uid = db.uid_for_token(authz[7:].strip(), _now_iso())
+        prof = db.profile(uid) if uid else None
+        if prof:
+            return prof
+        raise HTTPException(status_code=401, detail="invalid or revoked token")
     uid = request.session.get("user")
     if not uid and DEV_AUTH_ENABLED:
         if not db.profile(DEV_USER):

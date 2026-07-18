@@ -18,7 +18,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import auth, cache, content as data, db, grading, schemas, security, seed
+from . import auth, cache, content as data, db, device, grading, schemas, security, seed
 from .auth import current_user
 from .gists import store as gist_store
 from .gists import api as gists_api
@@ -65,13 +65,15 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(device.router)
 app.include_router(gists_api.router)
 
 
 # --------------------------- content (read-only) ---------------------------
 
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 def health() -> dict[str, Any]:
+    # HEAD too, so uptime monitors that ping with HEAD don't get a 405.
     return {"ok": True, "totalTopics": data.TOTAL_TOPICS, "stages": len(data.roadmap)}
 
 
@@ -240,10 +242,9 @@ def toggle_topic(body: schemas.ToggleTopicIn, user: str = Depends(current_user))
 @app.post("/api/entries")
 def save_entry(body: schemas.EntryIn, user: str = Depends(current_user)) -> dict[str, Any]:
     def fn(doc: dict[str, Any]) -> None:
-        doc["entries"][body.date] = {
-            "focus": body.focus, "conf": body.conf, "mins": body.mins,
-            "summary": body.summary, "notes": body.notes,
-        }
+        # A check-in is just minutes used + an optional summary. Completing a read in
+        # the client upserts this automatically; the form is only for the summary.
+        doc["entries"][body.date] = {"mins": body.mins, "summary": body.summary}
 
     return db.mutate(user, fn)
 

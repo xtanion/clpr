@@ -32,6 +32,8 @@ export const auth = {
   providers: () => req<{ google: boolean; github: boolean }>("/api/auth/providers"),
   logout: () => req<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
   loginUrl: (provider: "google" | "github") => `${BASE}/api/auth/${provider}/login`,
+  approveDevice: (userCode: string) =>
+    req<{ ok: boolean }>("/api/auth/device/approve", { method: "POST", body: JSON.stringify({ userCode }) }),
 };
 
 export const api = {

@@ -177,9 +177,10 @@ section { padding: 40px 0; }
 .gnav-brand { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; color: var(--text); }
 .gnav-brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--grad-green); }
 .gnav-links { display: flex; align-items: center; gap: 2px; }
-.gnav-link { font-size: 13px; color: var(--muted); padding: 6px 11px; border-radius: 0; background: none; border: 0; font-family: var(--font); cursor: pointer; transition: color .16s ease; }
+.gnav-link { position: relative; font-size: 13px; color: var(--muted); padding: 6px 11px; border-radius: 0; background: none; border: 0; font-family: var(--font); cursor: pointer; transition: color .16s ease; }
 .gnav-link:hover { color: var(--text); }
 .gnav-link.active { color: var(--loud); }
+.gnav-link.active::after { content: ""; position: absolute; left: 11px; right: 11px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--grad-green); }
 .gnav-sep { width: 1px; height: 15px; background: #2e2e2e; margin: 0 8px; align-self: center; }
 .ascii-bar { font-family: var(--font-mono); font-size: 12px; line-height: 1; white-space: nowrap; }
 .gnav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
@@ -458,7 +459,13 @@ section { padding: 40px 0; }
 .gist-back { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; text-decoration: none; }
 .gist-back:hover { color: var(--text); }
 .gist-page-title { font-size: 22px; font-weight: 600; color: var(--loud); line-height: 1.3; margin: 6px 0 0; }
-.gist-meta { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+.gist-meta { font-size: 12px; color: var(--muted); margin: 8px 0 0; display: flex; gap: 10px; align-items: center; }
+.gist-offline-tag { color: var(--sev-ok); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; font-size: 11px; }
+.gist-offline-tag::before { content: "\2193 "; }
+.gist-modes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+.gist-mode { font: inherit; font-size: 12px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 5px; padding: 4px 10px; cursor: pointer; transition: color .15s, border-color .15s; }
+.gist-mode:hover { color: var(--text); border-color: var(--focus); }
+.gist-mode.on { color: var(--void); background: var(--light-green); border-color: var(--light-green); }
 .gist-page-body { margin-top: 24px; }
 .mermaid { margin: 16px 0; display: flex; justify-content: center; }
 .mermaid svg { max-width: 100%; height: auto; }

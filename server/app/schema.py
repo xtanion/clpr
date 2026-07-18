@@ -271,4 +271,26 @@ CREATE TABLE IF NOT EXISTS user_artifacts (
     artifact_id TEXT NOT NULL,
     PRIMARY KEY (user_id, artifact_id)
 );
+
+-- ---------------- headless auth (device authorization grant) ----------------
+-- A terminal client starts a device flow (device_codes row, status 'pending'),
+-- the user approves it in the browser (status 'approved', uid bound), and the
+-- client polls to exchange it for a long-lived personal token (status 'consumed').
+CREATE TABLE IF NOT EXISTS device_codes (
+    device_code TEXT PRIMARY KEY,
+    user_code   TEXT NOT NULL,
+    uid         TEXT,
+    status      TEXT NOT NULL DEFAULT 'pending',  -- pending|approved|denied|consumed
+    created_at  TEXT NOT NULL,
+    expires_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS personal_tokens (
+    token_hash   TEXT PRIMARY KEY,   -- sha256 hex of the opaque bearer token
+    uid          TEXT NOT NULL,
+    label        TEXT NOT NULL DEFAULT '',
+    created_at   TEXT NOT NULL,
+    last_used_at TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS personal_tokens_uid_idx ON personal_tokens (uid);
 """

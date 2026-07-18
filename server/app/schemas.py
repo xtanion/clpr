@@ -9,11 +9,8 @@ from pydantic import BaseModel, Field
 
 class EntryIn(BaseModel):
     date: str = Field(..., description="ISO date YYYY-MM-DD")
-    focus: int
-    conf: int
-    mins: str
-    summary: str = ""
-    notes: str = ""
+    mins: str = ""       # minutes used, auto-tracked by the client
+    summary: str = ""    # optional one-line note
 
 
 class ToggleTopicIn(BaseModel):
@@ -49,6 +46,14 @@ class ResponseIn(BaseModel):
 class AttemptIn(BaseModel):
     responses: list[ResponseIn] = []
     timeMs: int = 0
+
+
+class DeviceApproveIn(BaseModel):
+    userCode: str
+
+
+class DevicePollIn(BaseModel):
+    deviceCode: str
 
 
 def public_quiz(quiz: dict[str, Any]) -> dict[str, Any]:

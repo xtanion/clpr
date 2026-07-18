@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { Bootstrap } from "@/components/Bootstrap";
 import { AuthProvider } from "@/lib/auth";
 import { AuthGate } from "@/components/AuthGate";
+import { OfflinePrefetch } from "@/components/OfflinePrefetch";
 import { PageTransition } from "@/components/PageTransition";
 import { loadContent } from "@/lib/serverContent";
 
@@ -28,6 +29,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                 <AuthGate>
                   <PageTransition>{children}</PageTransition>
                 </AuthGate>
+                <OfflinePrefetch />
               </div>
             </main>
             <Footer />

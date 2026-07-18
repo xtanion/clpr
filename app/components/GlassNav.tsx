@@ -20,11 +20,16 @@ export function GlassNav() {
   // The garage is a per-user route (/garage/<username>); keep the tab highlighted
   // for any /garage/* path (your own or someone else's).
   const garageHref = user.username ? `/garage/${encodeURIComponent(user.username)}` : "/garage";
-  const links: { href: string; label: string; sep?: boolean; prefix?: string }[] = [
-    { href: "/", label: "blueprints" },
-    { href: garageHref, label: "garage", prefix: "/garage" },
-    { href: "/notes", label: "notes" },
-    { href: "/leaderboard", label: "board", sep: true },
+  // Every route resolves to exactly one tab so there is always a visible "you are
+  // here". The learning surfaces reached from blueprints (climb, its quizzes, the
+  // gist reader) all light up the climb tab.
+  const links: { href: string; label: string; sep?: boolean; match: (p: string) => boolean }[] = [
+    { href: "/", label: "blueprints", match: (p) => p === "/" },
+    { href: "/climb", label: "climb", match: (p) => p.startsWith("/climb") || p.startsWith("/quiz") || p.startsWith("/gist") },
+    { href: garageHref, label: "garage", match: (p) => p.startsWith("/garage") },
+    { href: "/dashboard", label: "dashboard", match: (p) => p.startsWith("/dashboard") },
+    { href: "/notes", label: "notes", match: (p) => p.startsWith("/notes") },
+    { href: "/leaderboard", label: "board", sep: true, match: (p) => p.startsWith("/leaderboard") },
   ];
 
   return (
@@ -36,7 +41,8 @@ export function GlassNav() {
               {l.sep && <span className="gnav-sep" aria-hidden="true" />}
               <Link
                 href={l.href}
-                className={`gnav-link${(l.prefix ? pathname.startsWith(l.prefix) : pathname === l.href) ? " active" : ""}`}
+                aria-current={l.match(pathname) ? "page" : undefined}
+                className={`gnav-link${l.match(pathname) ? " active" : ""}`}
                 onClick={() => setOpen(false)}
               >
                 {l.label}
