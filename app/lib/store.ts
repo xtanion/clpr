@@ -193,10 +193,11 @@ export function buildArtifact(id: string) {
   api.buildArtifact<State>(id).then(setState).catch(() => {});
 }
 
-// Dependency gate: a camp unlocks when the previous camp's topics are all done.
-export function campUnlocked(s: State, campId: number): boolean {
-  if (campId <= 0) return true;
-  return stageTopicsComplete(s, campId - 1);
+// Everything is unlocked — people can read whatever they want; XP is earned by
+// completing topics/quizzes/notes, not by unlocking. (Kept as a function so callers
+// and the `_s`/`_campId` signature stay unchanged.)
+export function campUnlocked(_s: State, _campId: number): boolean {
+  return true;
 }
 
 const TITLES = ["Apprentice", "Builder", "Engineer", "Architect", "Master Builder"];
